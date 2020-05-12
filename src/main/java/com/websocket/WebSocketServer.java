@@ -1,4 +1,4 @@
-package com;
+package com.websocket;
 
 import com.alibaba.fastjson.JSON;
 import com.controller.EchartDataController;
