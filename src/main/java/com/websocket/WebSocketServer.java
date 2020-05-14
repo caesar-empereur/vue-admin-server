@@ -16,7 +16,7 @@ import java.util.concurrent.*;
  * @author: yangyingyang
  * @date: 2020/5/12.
  */
-@ServerEndpoint(value = "/ws")
+@ServerEndpoint(value = "/wss")
 @Component
 public class WebSocketServer {
 
