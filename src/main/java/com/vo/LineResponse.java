@@ -15,12 +15,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class LineResponse implements Serializable {
 
-    private Integer queryTime;
+    private Integer indexCount;
 
-    private Integer dealTime;
+    private Integer sellCount;
 
-    private Integer resTime;
+    private Integer secCount;
 
-    private LocalDate date;
+    private Long currTime;
 
 }

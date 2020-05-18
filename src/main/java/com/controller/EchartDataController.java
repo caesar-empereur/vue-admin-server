@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Random;
 
 /**
@@ -22,18 +23,16 @@ public class EchartDataController {
 
     private static final Random random = new Random();
 
-    private static LocalDate localDate = LocalDate.now();
-
     private static Integer days = 0;
 
-    @ApiOperation(value = "曲线")
-    @GetMapping(value = "/line")
-    public LineResponse mysqlLine(){
-        return newResponse();
-    }
+//    @ApiOperation(value = "曲线")
+//    @GetMapping(value = "/line")
+//    public LineResponse mysqlLine(){
+//        return newResponse();
+//    }
 
-    public static LineResponse newResponse(){
-        return new LineResponse(randomInteger(), randomInteger(), randomInteger(), localDate.plusDays(days++));
+    public static LineResponse newResponse(Long second){
+        return new LineResponse(randomInteger(), randomInteger(), randomInteger(), second);
     }
 
     private static Integer randomInteger(){

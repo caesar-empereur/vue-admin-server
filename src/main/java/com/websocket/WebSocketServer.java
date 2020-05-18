@@ -24,14 +24,15 @@ public class WebSocketServer {
 
     private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
 
-    private static CopyOnWriteArraySet<Session> sessions = new CopyOnWriteArraySet<>();
+    private static final ConcurrentMap<Session, Long> CURRENT_SESSION = new ConcurrentHashMap<>();
 
     @OnOpen
     public void onOpen(Session session) {
         log.info("建立连接");
-        sessions.add(session);
+
         executorService.scheduleAtFixedRate(()-> {
-            String message = JSON.toJSONString(EchartDataController.newResponse());
+
+            String message = JSON.toJSONString(EchartDataController.newResponse(System.currentTimeMillis()));
             sendMessage(session, message);
             log.info("发送消息成功，当前时间：" + System.currentTimeMillis()/1000 + " 消息内容: " + message);
         }, 0, 1, TimeUnit.SECONDS);
@@ -39,8 +40,9 @@ public class WebSocketServer {
 
     @OnClose
     public void onClose(Session session) {
+        CURRENT_SESSION.remove(session);
+
         log.info("连接关闭");
-        sessions.remove(session);
     }
 
     @OnMessage
