@@ -22,20 +22,29 @@ public class WebSocketServer {
 
     private static Logger log = LoggerFactory.getLogger(WebSocketServer.class);
 
-    private ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    private static final ConcurrentMap<Session, Long> CURRENT_SESSION = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Session, Boolean> CURRENT_SESSION = new ConcurrentHashMap<>();
 
     @OnOpen
     public void onOpen(Session session) {
         log.info("建立连接");
+        CURRENT_SESSION.put(session, true);
 
-        executorService.scheduleAtFixedRate(()-> {
-
-            String message = JSON.toJSONString(EchartDataController.newResponse(System.currentTimeMillis()));
-            sendMessage(session, message);
-            log.info("发送消息成功，当前时间：" + System.currentTimeMillis()/1000 + " 消息内容: " + message);
-        }, 0, 1, TimeUnit.SECONDS);
+        executorService.execute(()-> {
+            while (CURRENT_SESSION.get(session) != null){
+                String message = JSON.toJSONString(EchartDataController.newResponse(System.currentTimeMillis()));
+                sendMessage(session, message);
+                log.info("发送消息成功，当前时间：" + System.currentTimeMillis()/1000 + " 消息内容: " + message);
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException e) {
+                    log.error(e.getMessage());
+                }
+            }
+            log.info("发送消息线程结束");
+        });
     }
 
     @OnClose
