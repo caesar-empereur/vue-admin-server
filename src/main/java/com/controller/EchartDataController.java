@@ -36,7 +36,7 @@ public class EchartDataController {
     }
 
     private static Integer randomInteger(){
-        return randomInteger(400, 500);
+        return randomInteger(200, 500);
     }
 
     private static Integer randomInteger(Integer min, Integer max){
