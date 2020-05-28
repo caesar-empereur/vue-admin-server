@@ -3,11 +3,15 @@
 ### nginx https 配置
 
 ```
-主要的配置项大概如下
+项目运行步骤
 
-1 nginx 的配置
-2 项目的 application.properties 的配置
-3 操作系统的 host 文件配置
+1 环境配置
+    1 nginx 的配置
+    2 项目的 application.properties 的配置
+    3 操作系统的 host 文件配置
+2 运行项目
+    进入项目根目录，执行 gradle clean bootJar 生成 jar 文件运行
+
 ```
 
 
