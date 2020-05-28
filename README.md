@@ -1,7 +1,5 @@
 ## vue-admin-web 项目的服务端
 
-### nginx https 配置
-
 ```
 项目运行步骤
 
