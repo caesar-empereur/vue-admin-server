@@ -15,9 +15,14 @@
 ```
 
 
-- http 接口对应域名的配置
-    - 对应配置文件 vue-admin-server.conf
-    
+
+- nginx 的配置
+    ```
+    需要在 nginx/conf 目录下增加 vhost 目录存放 vue-admin-server.conf, vue-admin-websocket.conf 文件
+    ```
+    - http 接口对应域名的配置
+        - 对应配置文件 vue-admin-server.conf
+        
         ```
         server {
             listen       80;
@@ -52,9 +57,9 @@
         }
         ```
 
-- websocket 对应域名的配置
-    - 对应配置文件 vue-admin-websocket.conf
-    
+    - websocket 对应域名的配置
+        - 对应配置文件 vue-admin-websocket.conf
+        
         ```
         map $http_upgrade $connection_upgrade {
             default upgrade;
@@ -88,49 +93,49 @@
         }
         ```
 
-- nginx.conf 的配置
-
-    ```
-    #user  nobody;
-    worker_processes  1;
-    error_log  logs/error.log;
-    #pid        logs/nginx.pid;
+    - nginx.conf 的配置
     
-    events {
-        worker_connections  1024;
-    }
-    
-    
-    http {
-        include       mime.types;
-        default_type  application/octet-stream;
-    
-        log_format  main  '$remote_addr - $time_local - $status $body_bytes_sent';
-        access_log  logs/access.log;
-        sendfile        on;
-        keepalive_timeout  65;
+        ```
+        #user  nobody;
+        worker_processes  1;
+        error_log  logs/error.log;
+        #pid        logs/nginx.pid;
         
-        server {
-            listen   80 default;
-            server_name  _;
-            return 403;
-        }
-    
-        server_names_hash_bucket_size 64; 
-    
-        geo $ssl_cert_file {
-            default "D:/dev/app/nginx/SSL/nginx/create/zhengshu.pem";
+        events {
+            worker_connections  1024;
         }
         
-        geo $ssl_cert_key {
-            default "D:/dev/app/nginx/SSL/nginx/create/zhengshu.key";
-        }
-        # 如果证书能支持多级域名的话，可以用这 2 个 geo 的全局证书配置
-        # vhost 每个文件的 ssl_certificate 直接用变量 $ssl_cert_file 配置
         
-        include vhost/*.conf;
-    }
-    ```
+        http {
+            include       mime.types;
+            default_type  application/octet-stream;
+        
+            log_format  main  '$remote_addr - $time_local - $status $body_bytes_sent';
+            access_log  logs/access.log;
+            sendfile        on;
+            keepalive_timeout  65;
+            
+            server {
+                listen   80 default;
+                server_name  _;
+                return 403;
+            }
+        
+            server_names_hash_bucket_size 64; 
+        
+            geo $ssl_cert_file {
+                default "D:/dev/app/nginx/SSL/nginx/create/zhengshu.pem";
+            }
+            
+            geo $ssl_cert_key {
+                default "D:/dev/app/nginx/SSL/nginx/create/zhengshu.key";
+            }
+            # 如果证书能支持多级域名的话，可以用这 2 个 geo 的全局证书配置
+            # vhost 每个文件的 ssl_certificate 直接用变量 $ssl_cert_file 配置
+            
+            include vhost/*.conf;
+        }
+        ```
 
 - 为什么 websocket 的域名要单独配置
 
