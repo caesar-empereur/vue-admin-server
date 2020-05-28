@@ -11,8 +11,9 @@
     3 操作系统的 host 文件配置
     4 执行数据库脚本文件 data.sql
 2 运行项目
-    进入项目根目录，执行 gradle clean bootJar 生成 jar 文件运行
-
+    1 项目使用 springboot + websocket + gradle构建工具
+    2 进入项目根目录，执行 gradle clean bootJar 生成 jar 文件运行
+    3 浏览器打开 https://vue-admin-server.top/swagger-ui.hmtl 检验项目是否能正常访问
 ```
 
 
