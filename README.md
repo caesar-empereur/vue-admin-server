@@ -115,6 +115,10 @@
             sendfile        on;
             keepalive_timeout  65;
             
+            # 如果证书能支持多级域名的话，可以用这 2 个全局证书配置
+            ssl_certificate 	 D:/dev/app/nginx/SSL/nginx/create/zhengshu.pem;
+            ssl_certificate_key  D:/dev/app/nginx/SSL/nginx/create/zhengshu.key;
+            
             server {
                 listen   80 default;
                 server_name  _;
@@ -122,17 +126,7 @@
             }
         
             server_names_hash_bucket_size 64; 
-        
-            geo $ssl_cert_file {
-                default "D:/dev/app/nginx/SSL/nginx/create/zhengshu.pem";
-            }
-            
-            geo $ssl_cert_key {
-                default "D:/dev/app/nginx/SSL/nginx/create/zhengshu.key";
-            }
-            # 如果证书能支持多级域名的话，可以用这 2 个 geo 的全局证书配置
-            # vhost 每个文件的 ssl_certificate 直接用变量 $ssl_cert_file 配置
-            
+
             include vhost/*.conf;
         }
         ```
