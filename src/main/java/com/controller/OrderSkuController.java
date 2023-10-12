@@ -1,5 +1,6 @@
 package com.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.model.Order;
 import com.model.Sku;
 import com.repository.OrderRepository;
@@ -8,12 +9,22 @@ import com.vo.OrderPageQueryParameter;
 import com.vo.SkuPageQueryParameter;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @Description
@@ -37,7 +48,13 @@ public class OrderSkuController {
         if (StringUtils.isEmpty(parameter.getOrderNo())){
             parameter.setOrderNo(null);
         }
-        return orderRepository.pageQuery(parameter);
+//        return orderRepository.pageQuery(BeanUtil.copyProperties(parameter, Order.class),
+//                                         parameter.getPageNo(), parameter.getPageSize());
+
+        Specification<Order> specEqual = orderRepository.buildSpecEqual(BeanUtil.copyProperties(parameter, Order.class));
+        Specification<Order> specTime = orderRepository.buildTimeParamSpec("createTime", "2023-10-10 16:56:06", "2023-10-14 16:56:06");
+        return orderRepository.findAll(specEqual.and(specTime), PageRequest.of(parameter.getPageNo()-1,
+                                                                               parameter.getPageSize()));
     }
 
     @ApiOperation(value = "订单分页查询")
@@ -46,7 +63,8 @@ public class OrderSkuController {
         if (StringUtils.isEmpty(parameter.getName())){
             parameter.setName(null);
         }
-        return skuRepository.pageQuery(parameter);
+        return skuRepository.pageQuery(BeanUtil.toBean(parameter, Sku.class), parameter.getPageNo(),
+                                       parameter.getPageSize());
     }
 
     @ApiOperation(value = "新增Sku")

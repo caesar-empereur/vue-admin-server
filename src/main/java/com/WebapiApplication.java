@@ -12,7 +12,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
  * @author: yangyingyang
  * @date: 2020/4/30.
  */
-@ComponentScan("com")
 @EntityScan("com")
 @SpringBootApplication
 @EnableSwagger2

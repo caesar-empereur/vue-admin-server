@@ -1,19 +1,20 @@
 package com.repository;
 
-import com.alibaba.fastjson.JSON;
+import cn.hutool.core.bean.BeanUtil;
 import com.vo.PageParameter;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
-import org.springframework.util.StringUtils;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @Description 针对单表的分页查询
@@ -21,104 +22,117 @@ import java.util.stream.Collectors;
  * @date: 2018/11/27.
  */
 @NoRepositoryBean
-public interface ModelPageRepository<M> extends JpaRepository<M, String> {
-    
-    default Page<M> pageQuery(PageParameter pageParameter) {
-        M entity = convertParamToModel(pageParameter);
-        Set<String> fields = getAllFields(pageParameter);
-
-        if (fields.size()==0){
-            return findAll(convertPageRequest(pageParameter));
-        }
-        ExampleMatcher exampleMatcher = ExampleMatcher.matching();
-        for (String field : fields) {
-            exampleMatcher.withMatcher(field, ExampleMatcher.GenericPropertyMatchers.exact());
-        }
-        Example<M> example = Example.of(entity, exampleMatcher);
-
-        return findAll(example, convertPageRequest(pageParameter));
-    }
-    
-    default M findOne(M model){
-        List<String> fields = Arrays.asList(model.getClass().getDeclaredFields())
-                                    .stream()
-                                    .map(Field::getName)
-                                    .collect(Collectors.toList());
-        ExampleMatcher exampleMatcher = ExampleMatcher.matching();
-        for (String field : fields) {
-            exampleMatcher.withMatcher(field, ExampleMatcher.GenericPropertyMatchers.exact());
-        }
-        Example<M> example = Example.of(model, exampleMatcher);
-        Optional<M> result = findOne(example);
-        if (result.isPresent()){
-            return result.get();
+public interface ModelPageRepository<M> extends JpaRepository<M, String>, JpaSpecificationExecutor<M> {
+    //查询一个
+    default M findOneQuery(M paramModel){
+        Optional<M> optionalM = findOne(this.buildSpecEqual(paramModel));
+        if (optionalM.isPresent()){
+            return optionalM.get();
         }
         return null;
     }
-    
-    default Set<String> getAllFields(PageParameter clazz) {
-        Set<String> fieldList = new HashSet<>();
-        Field[] fields = clazz.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            fieldList.add(field.getName());
+
+    //根据排序查询最前面一个
+    default M findOneTop(M paramModel, Sort sort){
+        List<M> list = findAll(this.buildSpecEqual(paramModel));
+        if (list == null || list.isEmpty()){
+            return null;
         }
-        return fieldList;
+        return list.get(0);
     }
 
-    default Sort getSort(){
-        return Sort.by(new Sort.Order(Sort.Direction.DESC, "createTime"));
+    //列表查询
+    default List<M> listQuery(M paramModel){
+        return findAll(this.buildSpecEqual(paramModel));
     }
 
+    //根据 like 条件列表查询
+    default List<M> listQueryWithLike(M paramModel, Map<String, String> map){
+        Specification<M> specificationEqual = this.buildSpecEqual(paramModel);
+        Specification<M> specificationLike = this.buildSpecLike(map);
+        return findAll(specificationEqual.and(specificationLike));
+    }
 
-    default PageRequest convertPageRequest(PageParameter pageParameter){
-        if (pageParameter.getPageNo()<1){
-            pageParameter.setPageNo(1);
+    //根据分页参数, 条件 分页查询
+    default Page<M> pageQuery(M paramModel, Integer pageNum, Integer pageSize){
+        if (pageNum <= 1){
+            pageNum = 1;
         }
-        return PageRequest.of(pageParameter.getPageNo() - 1,
-                              pageParameter.getPageSize(),
-                              getSort());
+        return findAll(this.buildSpecEqual(paramModel), PageRequest.of(pageNum-1, pageSize));
     }
-    /**
-     * 处理新版的jpa分页查询方式，将继承PageParameter 的字段转移到对应模型
-     * 
-     * @param parameter
-     * @return
-     */
-    default M convertParamToModel(PageParameter parameter) {
-        M model = null;
-        outerLoop: for (Class clazz : getClass().getInterfaces()) {
-            for (Type type : clazz.getGenericInterfaces()) {
-                if (type instanceof ParameterizedType
-                    && ModelPageRepository.class == ((ParameterizedTypeImpl) type).getRawType()) {
-                    Class<M> mClass =
-                                    ((Class<M>) ((ParameterizedTypeImpl) type).getActualTypeArguments()[0]);
-                    try {
-                        model = mClass.newInstance();
+
+    //根据 equal, like 条件进行分页查询
+    default Page<M> pageQueryWithLike(M paramModel, Map<String, String> map, Integer pageNum, Integer pageSize){
+        if (pageNum <= 1){
+            pageNum = 1;
+        }
+        Specification<M> specificationEqual = this.buildSpecEqual(paramModel);
+        Specification<M> specificationLike = this.buildSpecLike(map);
+        return findAll(specificationEqual.and(specificationLike), PageRequest.of(pageNum-1, pageSize));
+    }
+
+    //进行某个字段的时间段分页查询
+    default Page<M> pageQueryWithTime(String filed, String startTime, String endTime, Integer pageNum, Integer pageSize){
+        if (pageNum <= 1){
+            pageNum = 1;
+        }
+        return findAll(this.buildTimeParamSpec(filed, startTime, endTime), PageRequest.of(pageNum-1, pageSize));
+    }
+
+    // 根据表字段，有值的构建 相等条件 查询
+    default Specification<M> buildSpecEqual(M model){
+        Specification<M> specification = new Specification<M>() {
+            @Override
+            public Predicate toPredicate(Root<M> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+                List<Predicate> predicates =new ArrayList<>();
+                Map<String, Object> mapParam = BeanUtil.beanToMap(model);
+                for (Map.Entry<String, Object> entry : mapParam.entrySet()) {
+                    if (entry.getValue()!=null){
+                        predicates.add(builder.equal(root.get(entry.getKey()).as(String.class), entry.getValue()));
                     }
-                    catch (InstantiationException | IllegalAccessException e) {
-                        throw new RuntimeException("实例化异常");
-                    }
-                    break outerLoop;
                 }
+                Predicate[] pre = new Predicate[predicates.size()];
+                return query.where(predicates.toArray(pre)).getRestriction();
             }
-        }
-        if (model == null){
-            throw new RuntimeException("实例化异常");
-        }
-        Map map = JSON.parseObject(JSON.toJSONString(parameter), Map.class);
-        Iterator<Map.Entry> it = map.entrySet().iterator();
-        while(it.hasNext()){
-            Map.Entry entry = it.next();
-            if (entry.getValue() instanceof String){
-                String value = (String) entry.getValue();
-                if (StringUtils.isEmpty(value)){
-                    it.remove();
-                }
-            }
-        }
-        parameter = JSON.parseObject(JSON.toJSONString(map), parameter.getClass());
-        BeanUtils.copyProperties(parameter, model);
-        return model;
+        };
+        return specification;
     }
-    
+
+    //根据给定字段，构建时间段查询条件
+    default Specification<M> buildTimeParamSpec(String filed, String startTime, String endTime){
+        Specification<M> specification = new Specification<M>() {
+            @Override
+            public Predicate toPredicate(Root<M> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+                List<Predicate> predicates =new ArrayList<>();
+                predicates.add(builder.greaterThanOrEqualTo(root.get(filed), DateUtils.parseToDate(startTime)));
+                predicates.add(builder.lessThanOrEqualTo(root.get(filed), DateUtils.parseToDate(endTime)));
+                Predicate[] pre = new Predicate[predicates.size()];
+                return query.where(predicates.toArray(pre)).getRestriction();
+            }
+        };
+        return specification;
+    }
+
+    // 根据给定字段，有值的构建  like条件 查询
+    default Specification<M> buildSpecLike(Map<String, String> map){
+        Specification<M> specification = new Specification<M>() {
+            @Override
+            public Predicate toPredicate(Root<M> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+                List<Predicate> predicates =new ArrayList<>();
+                for (Map.Entry<String, String> entry : map.entrySet()) {
+                    if (entry.getValue()!=null){
+                        predicates.add(builder.like(root.get(entry.getKey()).as(String.class), buildLikeString(entry.getValue())));
+                    }
+                }
+                Predicate[] pre = new Predicate[predicates.size()];
+                return query.where(predicates.toArray(pre)).getRestriction();
+            }
+        };
+        return specification;
+    }
+
+    default String buildLikeString(String value){
+        return "%" + value + "%";
+    }
+
 }

@@ -69,6 +69,7 @@ dependencies{
     compile "org.springframework.boot:spring-boot-starter-logging:$version_spring_boot"
     compile "org.springframework.boot:spring-boot-starter-websocket:$version_spring_boot"
 
+    implementation group: 'cn.hutool', name: 'hutool-all', version: '5.8.12'
 
     compile "mysql:mysql-connector-java:5.1.39"
     compile "org.projectlombok:lombok:1.18.2"
